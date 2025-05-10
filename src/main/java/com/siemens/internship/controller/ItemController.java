@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/items")
@@ -82,11 +83,12 @@ public class ItemController {
     }
 
     @GetMapping("/process")
-    public CompletableFuture<ResponseEntity<List<Item>>> processItems() {
-        // Changed the type of the method and the return to match the processItemsAsync() method.
+    public ResponseEntity<List<Item>> processItems() {
+        try {
+            List<Item> processedItems = itemService.processItemsAsync().get();
+            if (processedItems.isEmpty()) return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
-        return itemService.processItemsAsync()
-                .thenApply(processItems -> new ResponseEntity<>(processItems, HttpStatus.OK))
-                .exceptionally(exception -> new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+            return new ResponseEntity<>(processedItems, HttpStatus.OK);
+        } catch (InterruptedException | ExecutionException e) { return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); }
     }
 }
